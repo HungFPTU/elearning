@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { CourseDetailDto, CourseListQuery, CourseSummaryDto, Paginated } from '@elearning/shared';
+import { type CourseDetailDto, type CourseListQuery, type CourseSummaryDto, type Paginated, searchWords } from '@elearning/shared';
 import { notFound } from '../common/app-exception.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -34,7 +34,8 @@ export class CoursesService {
   async listPublished(query: CourseListQuery): Promise<Paginated<CourseSummaryDto>> {
     const where: Prisma.CourseWhereInput = {
       status: 'PUBLISHED',
-      ...(query.q && { title: { contains: query.q, mode: 'insensitive' } }),
+      // Accent-insensitive, uses the trigram index on searchText.
+      AND: searchWords(query.q ?? '').map((word) => ({ searchText: { contains: word } })),
       ...(query.category && { category: { slug: query.category } }),
       ...(query.level && { level: query.level }),
     };

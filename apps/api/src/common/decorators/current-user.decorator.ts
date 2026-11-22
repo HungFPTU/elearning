@@ -1,10 +1,11 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
-import type { Role } from '@elearning/shared';
+import type { PermissionKey, Role } from '@elearning/shared';
 
-/** Payload placed on `request.user` by JwtAuthGuard. */
+/** Placed on `request.user` by JwtAuthGuard. Loaded from the DB (cached), never trusted from the token. */
 export interface AuthUser {
   id: string;
   role: Role;
+  permissions: ReadonlySet<PermissionKey>;
 }
 
 export const CurrentUser = createParamDecorator((_data: unknown, ctx: ExecutionContext): AuthUser | undefined => {

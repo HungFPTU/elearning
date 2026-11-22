@@ -39,7 +39,7 @@ packages/
 docker-compose.yml   Postgres 16 + Redis 7 for local dev
 ```
 
-Tooling: **pnpm workspaces + Turborepo**. Node >= 22. Run everything from the root:
+Tooling: **pnpm workspaces** (root scripts use `pnpm -r`; no Turborepo, its Windows binary failed to spawn). Node >= 22. Run everything from the root:
 
 | Command | What it does |
 |---|---|
@@ -47,7 +47,7 @@ Tooling: **pnpm workspaces + Turborepo**. Node >= 22. Run everything from the ro
 | `cp .env.example .env` | create local env (web also reads `apps/web/.env.local` for `NEXT_PUBLIC_*`) |
 | `docker compose up -d` | start Postgres + Redis |
 | `pnpm db:migrate` | apply Prisma migrations (dev) |
-| `pnpm db:seed` | seed sample data (accounts `admin@` / `instructor@` / `student@elearning.local`, password `Password123!`) |
+| `pnpm db:seed` | seed sample data: owner from `OWNER_EMAIL`, `admin@` / `instructor@` / `student@elearning.local` and more, ~15 courses, orders, reviews (password `Password123!`) |
 | `pnpm dev` | run web + api in watch mode |
 | `pnpm build` / `pnpm lint` / `pnpm typecheck` / `pnpm test` | across all workspaces |
 
@@ -84,13 +84,22 @@ Tooling: **pnpm workspaces + Turborepo**. Node >= 22. Run everything from the ro
 - **Controllers are thin**: parse input, call a service, return the result. No Prisma in controllers.
 - **Prisma only in services** via the injected `PrismaService`. Use `select`/`include`
   deliberately; never return `passwordHash` or other secrets.
-- Auth: global `JwtAuthGuard`; mark open routes with `@Public()`. Restrict by role with
-  `@Roles(Role.ADMIN, ...)` + `RolesGuard`. Get the current user with `@CurrentUser()`.
+- Auth: global `JwtAuthGuard`; mark open routes with `@Public()`. Restrict by **permission**, never by role
+  name: `@RequirePermission('course.moderate')` (global `PermissionsGuard`; class + method decorators add up).
+  Get the current user with `@CurrentUser()`: `{ id, role, permissions }`, loaded from the DB, not the token.
+  See "Roles and permissions" below.
+- **Audit log**: every admin action and auth event calls `AuditService.record(entry, ctx, tx)` inside the
+  same transaction as the change. Get `ctx` (ip, user agent, request id) with `@ReqContext()`.
+  New action codes go into `AUDIT_ACTION_LABELS` in `@elearning/shared`.
 - **Unified error format** (global `AllExceptionsFilter`):
   `{ "statusCode": number, "message": string, "code": string }` where `code` is
   UPPER_SNAKE (e.g. `COURSE_NOT_FOUND`) and `message` is Vietnamese, user-facing.
   Throw with the helpers in `src/common/app-exception.ts`: `notFound('COURSE_NOT_FOUND', 'Không tìm thấy khóa học')`.
   Unknown errors become `500 INTERNAL_ERROR` without leaking details.
+- **Search**: never `contains` on raw columns. Filter on the trigger-maintained `searchText` column
+  (lowercased, accent-free, trigram-indexed) with `searchWords(q)` from `@elearning/shared`:
+  `AND: searchWords(q).map((w) => ({ searchText: { contains: w } }))`. Words match by prefix,
+  without accents ("hoa" finds "Hóa học"). A new searchable table gets the same column, trigger and GIN index.
 - REST naming: plural nouns (`/courses/:slug`, `/me/enrollments`), pagination with
   `?page=&pageSize=` returning `{ items, total, page, pageSize }`.
 - Config only through `ConfigService`; every env var listed in `.env.example`.
@@ -108,6 +117,21 @@ Tooling: **pnpm workspaces + Turborepo**. Node >= 22. Run everything from the ro
 - Forms: react-hook-form + zod schema from `@elearning/shared` when one exists.
 - UI primitives in `components/ui` (shadcn style); feature components in `components/<feature>`.
 - Format money with `formatVnd()` from `@elearning/shared`; never format by hand.
+
+### Roles and permissions
+- Permission catalog: `PERMISSIONS` in `packages/shared/src/permissions.ts`. Adding a key there is all it
+  takes; the API syncs it into the `permissions` table on boot. Default grants for the system roles live in
+  `DEFAULT_ROLE_PERMISSIONS` (applied only to a system role that has no permissions yet).
+- Roles: `USER` (default on sign-up) < `INSTRUCTOR` (own courses) < `ADMIN` (everything except permission
+  management) < `OWNER` (everything, bypasses checks). Owners can create custom roles.
+- Effective permissions = role permissions + user `GRANT` overrides − `DENY` overrides; DENY wins.
+  Logic in `apps/api/src/access/resolve-permissions.ts`, cached 30 s in `PermissionsService`; call
+  `invalidateUser(id)` / `invalidateAll()` after changing roles, overrides or status.
+- Who may change whom lives in `apps/api/src/admin/admin-rules.ts`: only an owner grants or removes
+  ADMIN/OWNER or touches admin accounts, there is always at least one owner, nobody locks themselves or an
+  owner, and a non-owner can never grant a permission they do not hold.
+- Web: `useAuth().can('perm')` to show or hide UI. It is only a hint; the API always enforces.
+- The owner account comes from `OWNER_EMAIL` in `.env` (seed only). Never hard-code it.
 
 ### Database (Prisma)
 - Schema in `apps/api/prisma/schema.prisma`, config in `apps/api/prisma.config.ts` (reads the root `.env`).
@@ -147,5 +171,9 @@ Tooling: **pnpm workspaces + Turborepo**. Node >= 22. Run everything from the ro
 - **Ask Bond before pushing, opening a PR or merging.**
 - Keep PRs focused on one milestone item.
 
-## 8. Workflow for a new feature
+## 8. Screens
+Every page and its route is listed in `docs/screens.md`. Read it before adding a page, and update it
+in the same change that adds, renames or removes one.
+
+## 9. Workflow for a new feature
 See `.claude/skills/add-feature/SKILL.md`.

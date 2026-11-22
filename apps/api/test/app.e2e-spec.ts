@@ -34,4 +34,51 @@ describe('API (e2e)', () => {
     const res = await request(app.getHttpServer()).post('/api/auth/login').send({ email: 'x' }).expect(400);
     expect(res.body.code).toBe('VALIDATION_ERROR');
   });
+
+  describe('with seeded data (pnpm db:seed)', () => {
+    const login = async (email: string) => {
+      const res = await request(app.getHttpServer())
+        .post('/api/auth/login')
+        .send({ email, password: 'Password123!' })
+        .expect(200);
+      return res.body.accessToken as string;
+    };
+
+    it('GET /api/me returns the effective permissions', async () => {
+      const token = await login('student@elearning.local');
+      const res = await request(app.getHttpServer()).get('/api/me').set('Authorization', `Bearer ${token}`).expect(200);
+      expect(res.body.role).toBe('USER');
+      expect(res.body.permissions).toContain('course.learn');
+      expect(res.body.permissions).not.toContain('admin.access');
+    });
+
+    it('blocks a plain user from the admin API', async () => {
+      const token = await login('student@elearning.local');
+      const res = await request(app.getHttpServer()).get('/api/admin/users').set('Authorization', `Bearer ${token}`).expect(403);
+      expect(res.body.code).toBe('FORBIDDEN');
+    });
+
+    it('lets an admin list users but not grant the admin role', async () => {
+      const token = await login('admin@elearning.local');
+      const list = await request(app.getHttpServer())
+        .get('/api/admin/users?q=student@elearning.local')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+      const studentId = list.body.items[0].id as string;
+      const res = await request(app.getHttpServer())
+        .patch(`/api/admin/users/${studentId}/role`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ roleKey: 'ADMIN' })
+        .expect(403);
+      expect(res.body.code).toBe('PRIVILEGED_ROLE');
+    });
+
+    it('rejects login for a locked account', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/auth/login')
+        .send({ email: 'hocvien11@elearning.local', password: 'Password123!' })
+        .expect(403);
+      expect(res.body.code).toBe('ACCOUNT_LOCKED');
+    });
+  });
 });

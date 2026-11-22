@@ -11,6 +11,7 @@ import {
   registerSchema,
 } from '@elearning/shared';
 import { Public } from '../common/decorators/public.decorator.js';
+import { ReqContext, type RequestContext } from '../common/decorators/request-context.decorator.js';
 import { AuthService } from './auth.service.js';
 
 @Public()
@@ -20,14 +21,14 @@ export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
   @Post('register')
-  register(@Body({ schema: registerSchema }) body: RegisterInput): Promise<AuthResponse> {
-    return this.auth.register(body);
+  register(@Body({ schema: registerSchema }) body: RegisterInput, @ReqContext() ctx: RequestContext): Promise<AuthResponse> {
+    return this.auth.register(body, ctx);
   }
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  login(@Body({ schema: loginSchema }) body: LoginInput): Promise<AuthResponse> {
-    return this.auth.login(body);
+  login(@Body({ schema: loginSchema }) body: LoginInput, @ReqContext() ctx: RequestContext): Promise<AuthResponse> {
+    return this.auth.login(body, ctx);
   }
 
   @Post('refresh')
@@ -38,7 +39,7 @@ export class AuthController {
 
   @Post('logout')
   @HttpCode(HttpStatus.NO_CONTENT)
-  logout(@Body({ schema: refreshSchema }) body: RefreshInput): Promise<void> {
-    return this.auth.logout(body.refreshToken);
+  logout(@Body({ schema: refreshSchema }) body: RefreshInput, @ReqContext() ctx: RequestContext): Promise<void> {
+    return this.auth.logout(body.refreshToken, ctx);
   }
 }

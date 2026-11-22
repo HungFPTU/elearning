@@ -1,19 +1,24 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import type { Role } from '@elearning/shared';
+import type { PermissionKey } from '@elearning/shared';
 import { forbidden } from '../app-exception.js';
 import type { AuthUser } from '../decorators/current-user.decorator.js';
-import { ROLES_KEY } from '../decorators/roles.decorator.js';
+import { PERMISSIONS_KEY } from '../decorators/require-permission.decorator.js';
 
+/** Global guard: enforces @RequirePermission(...). Runs after JwtAuthGuard. */
 @Injectable()
-export class RolesGuard implements CanActivate {
+export class PermissionsGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const roles = this.reflector.getAllAndOverride<Role[] | undefined>(ROLES_KEY, [context.getHandler(), context.getClass()]);
-    if (!roles?.length) return true;
+    const required = this.reflector.getAllAndMerge<PermissionKey[]>(PERMISSIONS_KEY, [
+      context.getClass(),
+      context.getHandler(),
+    ]);
+    if (!required?.length) return true;
+
     const user = context.switchToHttp().getRequest<{ user?: AuthUser }>().user;
-    if (!user || !roles.includes(user.role)) {
+    if (!user || !required.every((p) => user.permissions.has(p))) {
       throw forbidden('FORBIDDEN', 'Bạn không có quyền thực hiện thao tác này');
     }
     return true;
