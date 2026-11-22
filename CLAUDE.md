@@ -147,5 +147,9 @@ Tooling: **pnpm workspaces** (root scripts use `pnpm -r`; no Turborepo, its Wind
 - **Ask Bond before pushing, opening a PR or merging.**
 - Keep PRs focused on one milestone item.
 
-## 8. Workflow for a new feature
+## 8. Screens
+Every page and its route is listed in `docs/screens.md`. Read it before adding a page, and update it
+in the same change that adds, renames or removes one.
+
+## 9. Workflow for a new feature
 See `.claude/skills/add-feature/SKILL.md`.
