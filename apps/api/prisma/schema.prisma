@@ -1,0 +1,334 @@
+// Conventions (see CLAUDE.md): cuid ids, createdAt/updatedAt on every model,
+// tables mapped to snake_case plural, money as Int VND, all times UTC.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  STUDENT
+  INSTRUCTOR
+  ADMIN
+}
+
+enum CourseStatus {
+  DRAFT
+  PENDING_REVIEW
+  PUBLISHED
+  ARCHIVED
+}
+
+enum CourseLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  ALL_LEVELS
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentProvider {
+  VNPAY
+  MOMO
+  STRIPE
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+}
+
+enum DiscountType {
+  PERCENT
+  FIXED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String?
+  fullName     String
+  avatarUrl    String?
+  bio          String?
+  role         Role     @default(STUDENT)
+  googleId     String?  @unique
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  refreshTokens RefreshToken[]
+  coursesTaught Course[]         @relation("CourseInstructor")
+  enrollments   Enrollment[]
+  progress      LessonProgress[]
+  cart          Cart?
+  orders        Order[]
+  reviews       Review[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  courses Course[]
+
+  @@map("categories")
+}
+
+model Course {
+  id              String       @id @default(cuid())
+  title           String
+  slug            String       @unique
+  subtitle        String?
+  description     String
+  thumbnailUrl    String?
+  previewVideoUrl String?
+  /// Price in VND
+  price           Int
+  /// Sale price in VND; null when not on sale
+  salePrice       Int?
+  level           CourseLevel  @default(ALL_LEVELS)
+  language        String       @default("vi")
+  status          CourseStatus @default(DRAFT)
+  publishedAt     DateTime?
+  instructorId    String
+  categoryId      String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  instructor  User         @relation("CourseInstructor", fields: [instructorId], references: [id])
+  category    Category?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  sections    Section[]
+  enrollments Enrollment[]
+  cartItems   CartItem[]
+  orderItems  OrderItem[]
+  reviews     Review[]
+
+  @@index([status, publishedAt])
+  @@index([instructorId])
+  @@index([categoryId])
+  @@map("courses")
+}
+
+model Section {
+  id        String   @id @default(cuid())
+  courseId  String
+  title     String
+  position  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  course  Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons Lesson[]
+
+  @@unique([courseId, position])
+  @@map("sections")
+}
+
+model Lesson {
+  id              String   @id @default(cuid())
+  sectionId       String
+  title           String
+  position        Int
+  /// Provider asset/playback id (Mux / Cloudflare Stream); never a public file URL
+  videoAssetId    String?
+  durationSeconds Int      @default(0)
+  isPreview       Boolean  @default(false)
+  content         String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  section  Section          @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  progress LessonProgress[]
+
+  @@unique([sectionId, position])
+  @@map("lessons")
+}
+
+model Enrollment {
+  id          String    @id @default(cuid())
+  userId      String
+  courseId    String
+  orderId     String?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  order  Order? @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, courseId])
+  @@map("enrollments")
+}
+
+model LessonProgress {
+  id              String    @id @default(cuid())
+  userId          String
+  lessonId        String
+  positionSeconds Int       @default(0)
+  completedAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+  @@map("lesson_progress")
+}
+
+model Cart {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items CartItem[]
+
+  @@map("carts")
+}
+
+model CartItem {
+  id        String   @id @default(cuid())
+  cartId    String
+  courseId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cart   Cart   @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, courseId])
+  @@map("cart_items")
+}
+
+model Coupon {
+  id            String       @id @default(cuid())
+  code          String       @unique
+  discountType  DiscountType
+  /// Percent (1-100) when PERCENT, VND amount when FIXED
+  discountValue Int
+  maxUses       Int?
+  usedCount     Int          @default(0)
+  startsAt      DateTime?
+  expiresAt     DateTime?
+  isActive      Boolean      @default(true)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  orders Order[]
+
+  @@map("coupons")
+}
+
+model Order {
+  id        String      @id @default(cuid())
+  /// Human-friendly code sent to payment gateways (e.g. vnp_TxnRef)
+  code      String      @unique
+  userId    String
+  status    OrderStatus @default(PENDING)
+  /// Sum of item prices in VND
+  subtotal  Int
+  /// Discount in VND
+  discount  Int         @default(0)
+  /// Amount to pay in VND
+  total     Int
+  couponId  String?
+  paidAt    DateTime?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id])
+  coupon      Coupon?      @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  items       OrderItem[]
+  payments    Payment[]
+  enrollments Enrollment[]
+
+  @@index([userId, createdAt])
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String   @id @default(cuid())
+  orderId   String
+  courseId  String
+  /// Price in VND at the time of purchase
+  price     Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  order  Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id])
+
+  @@unique([orderId, courseId])
+  @@map("order_items")
+}
+
+model Payment {
+  id            String          @id @default(cuid())
+  orderId       String
+  provider      PaymentProvider
+  status        PaymentStatus   @default(PENDING)
+  /// Amount in VND
+  amount        Int
+  /// Gateway transaction id; unique to make IPN handling idempotent
+  providerTxnId String?         @unique
+  /// Raw callback payload (secrets stripped) for audit
+  rawPayload    Json?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@map("payments")
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  userId    String
+  courseId  String
+  /// 1-5
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+  @@map("reviews")
+}
