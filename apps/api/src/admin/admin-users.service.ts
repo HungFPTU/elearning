@@ -39,6 +39,13 @@ const listSelect = {
   role: { select: { key: true, name: true } },
 } as const satisfies Prisma.UserSelect;
 
+export const teachingSubjectSelect = {
+  id: true,
+  name: true,
+  slug: true,
+  category: { select: { id: true, name: true, slug: true } },
+} as const satisfies Prisma.SubjectSelect;
+
 type ListRow = Prisma.UserGetPayload<{ select: typeof listSelect }>;
 
 const toListItem = (u: ListRow): AdminUserListItemDto => ({ ...u, createdAt: u.createdAt.toISOString() });
@@ -90,6 +97,10 @@ export class AdminUsersService {
           orderBy: { permissionKey: 'asc' },
         },
         _count: { select: { coursesTaught: true, enrollments: true } },
+        teachingSubjects: {
+          orderBy: { subject: { name: 'asc' } },
+          select: { subject: { select: teachingSubjectSelect } },
+        },
       },
     });
     if (!user) throw userNotFound();
@@ -105,6 +116,7 @@ export class AdminUsersService {
       rolePermissions,
       overrides,
       effectivePermissions: resolvePermissions(user.role.key, rolePermissions, overrides),
+      teachingSubjects: user.teachingSubjects.map((t) => t.subject),
       courseCount: user._count.coursesTaught,
       enrollmentCount: user._count.enrollments,
     };

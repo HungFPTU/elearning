@@ -75,8 +75,9 @@ Tooling: **pnpm workspaces** (root scripts use `pnpm -r`; no Turborepo, its Wind
 
 ### API (apps/api)
 - **ESM**: relative imports end in `.js` (`import { X } from './x.service.js'`); no `__dirname`.
-- **One Nest module per domain**: `auth`, `users`, `courses`, `categories`, `cart`, `orders`,
-  `payments`, `enrollments`, `progress`, `reviews`, `coupons`, `admin`.
+- **One Nest module per domain**: `auth`, `users`, `courses`, `categories` (incl. subjects), `instructors`
+  (applications, teaching subjects), `cart`, `orders`, `payments`, `enrollments`, `progress`, `reviews`,
+  `coupons`, `admin`. Admin endpoints of a domain live in that domain's module (`admin-*.controller.ts`).
   Each has `*.module.ts`, `*.controller.ts`, `*.service.ts`, and `*.service.spec.ts` for business rules.
 - **Validation**: pass the shared zod schema to the param decorator:
   `@Body({ schema: registerSchema }) body: RegisterInput`, `@Query({ schema: courseListQuerySchema })`.
@@ -131,6 +132,9 @@ Tooling: **pnpm workspaces** (root scripts use `pnpm -r`; no Turborepo, its Wind
   ADMIN/OWNER or touches admin accounts, there is always at least one owner, nobody locks themselves or an
   owner, and a non-owner can never grant a permission they do not hold.
 - Web: `useAuth().can('perm')` to show or hide UI. It is only a hint; the API always enforces.
+- Catalog is **Category -> Subject**. Instructors may only create courses in subjects granted to them
+  (`instructor_subjects`), normally by approving an instructor application. Each category can define extra
+  course fields (`courseFields`, validated by `categoryFieldSchema`); a course stores their values in `extraFields`.
 - The owner account comes from `OWNER_EMAIL` in `.env` (seed only). Never hard-code it.
 
 ### Database (Prisma)

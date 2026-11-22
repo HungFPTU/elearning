@@ -74,17 +74,21 @@ model User {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
-  role                Role                     @relation(fields: [roleId], references: [id])
-  permissionOverrides UserPermissionOverride[] @relation("OverrideUser")
-  overridesGranted    UserPermissionOverride[] @relation("OverrideGrantedBy")
-  auditLogs           AuditLog[]
-  refreshTokens       RefreshToken[]
-  coursesTaught       Course[]                 @relation("CourseInstructor")
-  enrollments         Enrollment[]
-  progress            LessonProgress[]
-  cart                Cart?
-  orders              Order[]
-  reviews             Review[]
+  role                 Role                     @relation(fields: [roleId], references: [id])
+  permissionOverrides  UserPermissionOverride[] @relation("OverrideUser")
+  overridesGranted     UserPermissionOverride[] @relation("OverrideGrantedBy")
+  auditLogs            AuditLog[]
+  refreshTokens        RefreshToken[]
+  coursesTaught        Course[]                 @relation("CourseInstructor")
+  enrollments          Enrollment[]
+  progress             LessonProgress[]
+  cart                 Cart?
+  orders               Order[]
+  reviews              Review[]
+  teachingSubjects     InstructorSubject[]      @relation("InstructorSubjects")
+  subjectsGranted      InstructorSubject[]      @relation("InstructorSubjectGrantedBy")
+  applications         InstructorApplication[]  @relation("ApplicationApplicant")
+  applicationsReviewed InstructorApplication[]  @relation("ApplicationReviewer")
 
   @@index([roleId])
   @@index([searchText(ops: raw("gin_trgm_ops"))], type: Gin)
@@ -198,15 +202,106 @@ model RefreshToken {
 }
 
 model Category {
-  id        String   @id @default(cuid())
-  name      String
-  slug      String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String   @id @default(cuid())
+  name         String
+  slug         String   @unique
+  description  String?
+  position     Int      @default(0)
+  /// Extra course fields this category needs (e.g. "Lớp" for Hóa học). Array of CategoryField, see @elearning/shared
+  courseFields Json     @default("[]")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  courses Course[]
+  courses  Course[]
+  subjects Subject[]
 
   @@map("categories")
+}
+
+/// A concrete subject inside a category (Hóa học -> Hóa 10, Hóa 11...). Instructors are approved per subject.
+model Subject {
+  id          String   @id @default(cuid())
+  categoryId  String
+  name        String
+  slug        String
+  description String?
+  position    Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  category     Category                       @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  courses      Course[]
+  instructors  InstructorSubject[]
+  applications InstructorApplicationSubject[]
+
+  @@unique([categoryId, slug])
+  @@map("subjects")
+}
+
+/// Which subjects an instructor may create courses in.
+model InstructorSubject {
+  id          String   @id @default(cuid())
+  userId      String
+  subjectId   String
+  grantedById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user      User    @relation("InstructorSubjects", fields: [userId], references: [id], onDelete: Cascade)
+  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  grantedBy User?   @relation("InstructorSubjectGrantedBy", fields: [grantedById], references: [id], onDelete: SetNull)
+
+  @@unique([userId, subjectId])
+  @@index([subjectId])
+  @@map("instructor_subjects")
+}
+
+enum ApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+/// A request to teach one or more subjects. Also used by instructors who want extra subjects.
+model InstructorApplication {
+  id           String            @id @default(cuid())
+  userId       String
+  status       ApplicationStatus @default(PENDING)
+  headline     String
+  bio          String
+  experience   String
+  /// Portfolio, sample lesson or certificate links
+  links        String[]
+  reviewedById String?
+  reviewedAt   DateTime?
+  reviewNote   String?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  user       User                           @relation("ApplicationApplicant", fields: [userId], references: [id], onDelete: Cascade)
+  reviewedBy User?                          @relation("ApplicationReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  subjects   InstructorApplicationSubject[]
+
+  @@index([status, createdAt])
+  @@index([userId, createdAt])
+  @@map("instructor_applications")
+}
+
+model InstructorApplicationSubject {
+  id            String   @id @default(cuid())
+  applicationId String
+  subjectId     String
+  /// Set when the application is decided: whether this subject was granted
+  approved      Boolean?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  application InstructorApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  subject     Subject               @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+
+  @@unique([applicationId, subjectId])
+  @@map("instructor_application_subjects")
 }
 
 model Course {
@@ -227,6 +322,9 @@ model Course {
   publishedAt     DateTime?
   instructorId    String
   categoryId      String?
+  subjectId       String?
+  /// Values for the category's courseFields, keyed by field key
+  extraFields     Json         @default("{}")
   /// Lowercased, accent-free "title subtitle", kept up to date by a DB trigger; used for search
   searchText      String       @default("")
   createdAt       DateTime     @default(now())
@@ -234,6 +332,7 @@ model Course {
 
   instructor  User         @relation("CourseInstructor", fields: [instructorId], references: [id])
   category    Category?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  subject     Subject?     @relation(fields: [subjectId], references: [id], onDelete: SetNull)
   sections    Section[]
   enrollments Enrollment[]
   cartItems   CartItem[]
@@ -243,6 +342,7 @@ model Course {
   @@index([status, publishedAt])
   @@index([instructorId])
   @@index([categoryId])
+  @@index([subjectId])
   @@index([searchText(ops: raw("gin_trgm_ops"))], type: Gin)
   @@map("courses")
 }

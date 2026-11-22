@@ -42,3 +42,24 @@ export const COURSE_LEVEL_LABELS: Record<CourseLevel, string> = {
   ADVANCED: 'Nâng cao',
   ALL_LEVELS: 'Mọi cấp độ',
 };
+
+export const ApplicationStatus = {
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+} as const;
+export type ApplicationStatus = (typeof ApplicationStatus)[keyof typeof ApplicationStatus];
+
+export const APPLICATION_STATUS_LABELS: Record<ApplicationStatus, string> = {
+  PENDING: 'Chờ duyệt',
+  APPROVED: 'Đã duyệt',
+  REJECTED: 'Bị từ chối',
+};
+
+/** Input types an admin can use for a category's extra course fields. */
+export const CategoryFieldType = {
+  TEXT: 'text',
+  NUMBER: 'number',
+  SELECT: 'select',
+} as const;
+export type CategoryFieldType = (typeof CategoryFieldType)[keyof typeof CategoryFieldType];

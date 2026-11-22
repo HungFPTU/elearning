@@ -12,8 +12,8 @@ Status: `done` = exists in code · a number = MVP milestone that builds it.
 |---|---|---|---|
 | Home | `/` | everyone | done |
 | Course catalog (search, filters) | `/courses` | everyone | done |
-| Category page: its subjects and courses | `/categories/[slug]` | everyone | 2 |
-| Subject page: courses of one subject | `/categories/[slug]/[subjectSlug]` | everyone | 2 |
+| Category page: its subjects and courses | `/categories/[slug]` | everyone | done |
+| Subject page: courses of one subject | `/categories/[slug]/[subjectSlug]` | everyone | done |
 | Course detail | `/courses/[slug]` | everyone | done |
 | Instructor public profile | `/instructors/[id]` | everyone | 6 |
 | Sign in / sign up | `/login`, `/register` | everyone | done |
@@ -26,7 +26,7 @@ Status: `done` = exists in code · a number = MVP milestone that builds it.
 | Screen | Route | Who | Status |
 |---|---|---|---|
 | Account: profile, password | `/account` | user | 2 |
-| Apply to become an instructor, see application status | `/become-instructor` | user | 2 |
+| Apply to become an instructor (or teach more subjects), see application status | `/become-instructor` | user, instructor | done |
 | Cart | `/cart` | user | 3 |
 | Checkout, payment result | `/checkout`, `/checkout/result` | user | 3 |
 | Order history | `/orders` | user | 3 |
@@ -52,12 +52,12 @@ Status: `done` = exists in code · a number = MVP milestone that builds it.
 |---|---|---|---|
 | Dashboard (links now, stats in milestone 5) | `/admin` | admin | done |
 | Users list | `/admin/users` | admin | done |
-| User detail: role, permission overrides, lock | `/admin/users/[id]` | admin | done |
+| User detail: role, lock, teaching subjects, permission overrides | `/admin/users/[id]` | admin | done |
 | Roles and their permissions | `/admin/roles`, `/admin/roles/[key]` | owner edits, admin views | done |
-| Instructor applications | `/admin/instructor-applications` | admin | 2 |
+| Instructor applications | `/admin/instructor-applications` | admin | done |
 | Course moderation queue | `/admin/courses` | admin | 2 |
 | Review one course submission | `/admin/courses/[id]/review` | admin | 2 |
-| Categories and subjects tree | `/admin/categories` | admin | 2 |
+| Categories, subjects and per-category course fields | `/admin/categories` | admin | done |
 | Audit log | `/admin/audit-logs` | admin | done |
 | Orders, refunds | `/admin/orders` | admin | 5 |
 | Media library | `/admin/media` | admin | 5 |

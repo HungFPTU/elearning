@@ -21,6 +21,11 @@ export function UserMenu() {
   }
   return (
     <div className="flex items-center gap-3">
+      {can('instructor_application.submit') && (user.role === 'USER' || user.role === 'INSTRUCTOR') && (
+        <Link href="/become-instructor" className={buttonClasses('ghost')}>
+          {user.role === 'INSTRUCTOR' ? 'Dạy thêm môn' : 'Trở thành giảng viên'}
+        </Link>
+      )}
       {can('admin.access') && (
         <Link href="/admin" className={buttonClasses('ghost')}>
           Quản trị

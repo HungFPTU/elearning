@@ -21,9 +21,9 @@ const NAV: NavItem[] = [
   { href: '/admin/users', label: 'Người dùng', permission: 'user.read' },
   { href: '/admin/roles', label: 'Role và quyền', permission: 'admin.access' },
   { href: '/admin/audit-logs', label: 'Nhật ký thao tác', permission: 'audit.read' },
-  { href: '/admin/instructor-applications', label: 'Đơn giảng viên', permission: 'instructor_application.review', soon: true },
+  { href: '/admin/instructor-applications', label: 'Đơn giảng viên', permission: 'instructor_application.review' },
   { href: '/admin/courses', label: 'Duyệt khóa học', permission: 'course.moderate', soon: true },
-  { href: '/admin/categories', label: 'Danh mục và môn học', permission: 'category.manage', soon: true },
+  { href: '/admin/categories', label: 'Danh mục và môn học', permission: 'category.manage' },
   { href: '/admin/media', label: 'Thư viện media', permission: 'media.manage', soon: true },
   { href: '/admin/orders', label: 'Đơn hàng', permission: 'order.manage', soon: true },
 ];

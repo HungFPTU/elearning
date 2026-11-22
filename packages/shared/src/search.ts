@@ -24,3 +24,11 @@ export function searchWords(term: string): string[] {
     .slice(0, 8)
     .map((word) => ` ${word.replace(/[\\%_]/g, '\\$&')}`);
 }
+
+/** "Hóa học 10" -> "hoa-hoc-10": suggested slug for categories, subjects and courses. */
+export function toSlug(text: string): string {
+  return normalizeSearch(text)
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80);
+}
