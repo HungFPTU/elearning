@@ -2,18 +2,17 @@
   "name": "elearning",
   "private": true,
   "packageManager": "pnpm@10.28.0",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
-    "dev": "turbo run dev",
-    "build": "turbo run build",
-    "lint": "turbo run lint",
-    "typecheck": "turbo run typecheck",
-    "test": "turbo run test",
+    "dev": "pnpm --filter @elearning/shared build && pnpm -r --parallel dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm --filter @elearning/shared build && pnpm -r lint",
+    "typecheck": "pnpm --filter @elearning/shared build && pnpm -r typecheck",
+    "test": "pnpm --filter @elearning/shared build && pnpm -r test",
     "db:migrate": "pnpm --filter @elearning/api db:migrate",
     "db:seed": "pnpm --filter @elearning/api db:seed",
     "db:studio": "pnpm --filter @elearning/api db:studio"
-  },
-  "devDependencies": {
-    "turbo": "^2.11.13"
   }
 }

@@ -39,7 +39,7 @@ packages/
 docker-compose.yml   Postgres 16 + Redis 7 for local dev
 ```
 
-Tooling: **pnpm workspaces + Turborepo**. Node >= 22. Run everything from the root:
+Tooling: **pnpm workspaces** (root scripts use `pnpm -r`; no Turborepo, its Windows binary failed to spawn). Node >= 22. Run everything from the root:
 
 | Command | What it does |
 |---|---|

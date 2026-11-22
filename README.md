@@ -1,6 +1,6 @@
 # E-Learning
 
-Website bán khóa học online: Next.js (web) + NestJS (api) + PostgreSQL, monorepo pnpm + Turborepo.
+Website bán khóa học online: Next.js (web) + NestJS (api) + PostgreSQL, monorepo pnpm workspaces.
 
 ## Chạy local
 
