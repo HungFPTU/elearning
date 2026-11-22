@@ -11,6 +11,7 @@ import {
   type UpdateUserStatusInput,
   UserStatus,
   isPermissionKey,
+  searchWords,
 } from '@elearning/shared';
 import { PermissionsService } from '../access/permissions.service.js';
 import { resolvePermissions } from '../access/resolve-permissions.js';
@@ -56,12 +57,8 @@ export class AdminUsersService {
     const where: Prisma.UserWhereInput = {
       status: query.status,
       role: query.role ? { key: query.role } : undefined,
-      OR: query.q
-        ? [
-            { email: { contains: query.q, mode: 'insensitive' } },
-            { fullName: { contains: query.q, mode: 'insensitive' } },
-          ]
-        : undefined,
+      // Accent-insensitive "email fullName" match, uses the trigram index on searchText.
+      AND: searchWords(query.q ?? '').map((word) => ({ searchText: { contains: word } })),
     };
     const [rows, total] = await this.prisma.$transaction([
       this.prisma.user.findMany({

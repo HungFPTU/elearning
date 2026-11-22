@@ -69,6 +69,8 @@ model User {
   roleId       String
   status       UserStatus @default(ACTIVE)
   googleId     String?    @unique
+  /// Lowercased, accent-free "email fullName", kept up to date by a DB trigger; used for search
+  searchText   String     @default("")
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
@@ -85,6 +87,7 @@ model User {
   reviews             Review[]
 
   @@index([roleId])
+  @@index([searchText(ops: raw("gin_trgm_ops"))], type: Gin)
   @@map("users")
 }
 
@@ -224,6 +227,8 @@ model Course {
   publishedAt     DateTime?
   instructorId    String
   categoryId      String?
+  /// Lowercased, accent-free "title subtitle", kept up to date by a DB trigger; used for search
+  searchText      String       @default("")
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
@@ -238,6 +243,7 @@ model Course {
   @@index([status, publishedAt])
   @@index([instructorId])
   @@index([categoryId])
+  @@index([searchText(ops: raw("gin_trgm_ops"))], type: Gin)
   @@map("courses")
 }
 

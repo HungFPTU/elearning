@@ -11,6 +11,8 @@ export function useAdminQuery<T>(key: readonly unknown[], path: string, options:
     queryFn: () => authFetch<T>(path),
     enabled: options.enabled ?? true,
     placeholderData: keepPreviousData,
+    // Same filters within 30 s reuse the cached page instead of hitting the API again.
+    staleTime: 30_000,
   });
 }
 

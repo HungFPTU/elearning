@@ -96,6 +96,10 @@ Tooling: **pnpm workspaces** (root scripts use `pnpm -r`; no Turborepo, its Wind
   UPPER_SNAKE (e.g. `COURSE_NOT_FOUND`) and `message` is Vietnamese, user-facing.
   Throw with the helpers in `src/common/app-exception.ts`: `notFound('COURSE_NOT_FOUND', 'Không tìm thấy khóa học')`.
   Unknown errors become `500 INTERNAL_ERROR` without leaking details.
+- **Search**: never `contains` on raw columns. Filter on the trigger-maintained `searchText` column
+  (lowercased, accent-free, trigram-indexed) with `searchWords(q)` from `@elearning/shared`:
+  `AND: searchWords(q).map((w) => ({ searchText: { contains: w } }))`. Words match by prefix,
+  without accents ("hoa" finds "Hóa học"). A new searchable table gets the same column, trigger and GIN index.
 - REST naming: plural nouns (`/courses/:slug`, `/me/enrollments`), pagination with
   `?page=&pageSize=` returning `{ items, total, page, pageSize }`.
 - Config only through `ConfigService`; every env var listed in `.env.example`.
