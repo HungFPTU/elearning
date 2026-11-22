@@ -1,4 +1,5 @@
-import type { CourseLevel, PermissionEffect, Role, UserStatus } from './enums.js';
+import type { ApplicationStatus, CourseLevel, PermissionEffect, Role, UserStatus } from './enums.js';
+import type { CategoryField } from './schemas.js';
 import type { PermissionKey } from './permissions.js';
 
 export interface Paginated<T> {
@@ -54,6 +55,8 @@ export interface PermissionOverrideDto {
 }
 
 export interface AdminUserDetailDto extends AdminUserListItemDto {
+  /** Subjects this user may create courses in (instructors). */
+  teachingSubjects: TeachingSubjectDto[];
   rolePermissions: PermissionKey[];
   overrides: PermissionOverrideDto[];
   effectivePermissions: PermissionKey[];
@@ -103,6 +106,66 @@ export interface CategoryDto {
   slug: string;
 }
 
+export interface SubjectDto {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+}
+
+/** Public catalog tree: active subjects only. */
+export interface CategoryTreeDto extends CategoryDto {
+  description: string | null;
+  subjects: SubjectDto[];
+}
+
+export interface AdminSubjectDto extends SubjectDto {
+  position: number;
+  isActive: boolean;
+  courseCount: number;
+  instructorCount: number;
+}
+
+export interface AdminCategoryDto extends CategoryDto {
+  description: string | null;
+  position: number;
+  courseFields: CategoryField[];
+  courseCount: number;
+  subjects: AdminSubjectDto[];
+}
+
+export interface TeachingSubjectDto {
+  id: string;
+  name: string;
+  slug: string;
+  category: CategoryDto;
+}
+
+export interface ApplicationSubjectDto extends TeachingSubjectDto {
+  /** null while pending; afterwards whether this subject was granted */
+  approved: boolean | null;
+}
+
+export interface InstructorApplicationDto {
+  id: string;
+  status: ApplicationStatus;
+  headline: string;
+  bio: string;
+  experience: string;
+  links: string[];
+  subjects: ApplicationSubjectDto[];
+  reviewNote: string | null;
+  reviewedAt: string | null;
+  reviewedBy: { id: string; fullName: string } | null;
+  createdAt: string;
+}
+
+export interface AdminInstructorApplicationDto extends InstructorApplicationDto {
+  user: { id: string; fullName: string; email: string; role: RoleSummaryDto };
+  /** What the applicant can already teach, to compare with what they ask for. */
+  currentSubjects: TeachingSubjectDto[];
+}
+
 export interface CourseSummaryDto {
   id: string;
   title: string;
@@ -116,6 +179,7 @@ export interface CourseSummaryDto {
   level: CourseLevel;
   instructor: { id: string; fullName: string };
   category: CategoryDto | null;
+  subject: { id: string; name: string; slug: string } | null;
   lessonCount: number;
   ratingAvg: number | null;
   ratingCount: number;

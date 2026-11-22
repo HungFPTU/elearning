@@ -17,6 +17,7 @@ import { PermissionsGuard } from './common/guards/permissions.guard.js';
 import { RequestIdMiddleware } from './common/middleware/request-id.middleware.js';
 import { type Env, validateEnv } from './config/env.js';
 import { CoursesModule } from './courses/courses.module.js';
+import { InstructorsModule } from './instructors/instructors.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { UsersModule } from './users/users.module.js';
 
@@ -40,6 +41,7 @@ import { UsersModule } from './users/users.module.js';
     CategoriesModule,
     CoursesModule,
     AdminModule,
+    InstructorsModule,
   ],
   controllers: [AppController],
   providers: [

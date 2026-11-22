@@ -73,6 +73,19 @@ describe('API (e2e)', () => {
       expect(res.body.code).toBe('PRIVILEGED_ROLE');
     });
 
+    it('GET /api/categories returns the category -> subject tree', async () => {
+      const res = await request(app.getHttpServer()).get('/api/categories').expect(200);
+      const chemistry = res.body.find((c: { slug: string }) => c.slug === 'hoa-hoc');
+      expect(chemistry.subjects.map((s: { slug: string }) => s.slug)).toContain('hoa-12');
+    });
+
+    it('keeps the instructor application queue and category admin away from plain users', async () => {
+      const token = await login('student@elearning.local');
+      await request(app.getHttpServer()).get('/api/admin/instructor-applications').set('Authorization', `Bearer ${token}`).expect(403);
+      await request(app.getHttpServer()).get('/api/admin/categories').set('Authorization', `Bearer ${token}`).expect(403);
+      await request(app.getHttpServer()).get('/api/me/instructor-applications').set('Authorization', `Bearer ${token}`).expect(200);
+    });
+
     it('rejects login for a locked account', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/auth/login')

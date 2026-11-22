@@ -15,6 +15,7 @@ const summarySelect = {
   level: true,
   instructor: { select: { id: true, fullName: true } },
   category: { select: { id: true, name: true, slug: true } },
+  subject: { select: { id: true, name: true, slug: true } },
   sections: { select: { _count: { select: { lessons: true } } } },
 } satisfies Prisma.CourseSelect;
 
@@ -37,6 +38,8 @@ export class CoursesService {
       // Accent-insensitive, uses the trigram index on searchText.
       AND: searchWords(query.q ?? '').map((word) => ({ searchText: { contains: word } })),
       ...(query.category && { category: { slug: query.category } }),
+      // Subject slugs are unique per category, so the web always sends `category` along with `subject`.
+      ...(query.subject && { subject: { slug: query.subject } }),
       ...(query.level && { level: query.level }),
     };
     const [rows, total] = await this.prisma.$transaction([
@@ -121,6 +124,7 @@ function toSummary(row: CourseSummaryRow, rating?: RatingStats): CourseSummaryDt
     level: row.level,
     instructor: row.instructor,
     category: row.category,
+    subject: row.subject,
     lessonCount: row.sections.reduce((sum, s) => sum + s._count.lessons, 0),
     ratingAvg: rating?.ratingAvg ?? null,
     ratingCount: rating?.ratingCount ?? 0,

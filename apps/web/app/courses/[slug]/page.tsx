@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { COURSE_LEVEL_LABELS } from '@elearning/shared';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
@@ -28,7 +29,21 @@ async function CourseDetail({ params }: { params: PageProps<'/courses/[slug]'>['
       <section className="bg-slate-900 text-white">
         <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 lg:grid-cols-[1fr_320px]">
           <div>
-            {course.category && <p className="text-sm text-indigo-300">{course.category.name}</p>}
+            {course.category && (
+              <p className="text-sm text-indigo-300">
+                <Link href={`/categories/${course.category.slug}`} className="hover:underline">
+                  {course.category.name}
+                </Link>
+                {course.subject && (
+                  <>
+                    {' / '}
+                    <Link href={`/categories/${course.category.slug}/${course.subject.slug}`} className="hover:underline">
+                      {course.subject.name}
+                    </Link>
+                  </>
+                )}
+              </p>
+            )}
             <h1 className="mt-2 text-3xl font-bold">{course.title}</h1>
             {course.subtitle && <p className="mt-3 text-lg text-slate-300">{course.subtitle}</p>}
             <p className="mt-4 text-sm text-slate-400">

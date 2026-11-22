@@ -18,6 +18,8 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { formatDate } from '@/lib/utils';
+import { SubjectPicker } from '@/components/catalog/subject-picker';
+import { useCategoryTree } from '@/components/catalog/use-category-tree';
 import { ErrorText } from './error-text';
 import { RoleBadge, StatusBadge } from './role-badge';
 import { jsonBody, useAdminQuery } from './use-admin-api';
@@ -66,6 +68,7 @@ export function UserDetail({ id }: { id: string }) {
         <RoleCard user={u} />
         <StatusCard user={u} />
       </div>
+      <TeachingSubjectsCard key={u.teachingSubjects.map((t) => t.id).join()} user={u} />
       <OverridesCard key={JSON.stringify(u.overrides)} user={u} />
     </div>
   );
@@ -239,6 +242,38 @@ function OverridesCard({ user }: { user: Detail }) {
           ))}
         </table>
       </div>
+    </Card>
+  );
+}
+
+function TeachingSubjectsCard({ user }: { user: Detail }) {
+  const { can, authFetch } = useAuth();
+  const queryClient = useQueryClient();
+  const tree = useCategoryTree();
+  const [selected, setSelected] = useState(() => user.teachingSubjects.map((t) => t.id));
+  const editable = can('instructor_application.review');
+  const save = useMutation({
+    mutationFn: () => authFetch(`/admin/users/${user.id}/subjects`, jsonBody('PUT', { subjectIds: selected })),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['admin', 'user', user.id] }),
+  });
+  const dirty = selected.slice().sort().join() !== user.teachingSubjects.map((t) => t.id).sort().join();
+
+  return (
+    <Card
+      title="Môn được dạy"
+      actions={
+        editable && (
+          <Button disabled={!dirty || save.isPending} onClick={() => save.mutate()}>
+            Lưu môn
+          </Button>
+        )
+      }
+    >
+      <p className="mb-3 text-sm text-slate-500">
+        Giảng viên chỉ tạo được khóa học trong các môn này. Thường được cấp khi duyệt đơn giảng viên; chỉnh tay ở đây khi cần.
+      </p>
+      {tree.data && <SubjectPicker categories={tree.data} value={selected} onChange={setSelected} disabled={!editable} />}
+      <ErrorText error={save.error} />
     </Card>
   );
 }

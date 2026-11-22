@@ -177,15 +177,128 @@ async function seedUsers(roleIds: Record<SystemRole, string>, passwordHash: stri
   return byEmail;
 }
 
-const CATEGORIES = [
-  { name: 'Lập trình Web', slug: 'lap-trinh-web' },
-  { name: 'Khoa học dữ liệu', slug: 'khoa-hoc-du-lieu' },
-  { name: 'Thiết kế', slug: 'thiet-ke' },
-  { name: 'Hóa học', slug: 'hoa-hoc' },
-  { name: 'Toán học', slug: 'toan-hoc' },
-  { name: 'Ngoại ngữ', slug: 'ngoai-ngu' },
-  { name: 'Kỹ năng mềm', slug: 'ky-nang-mem' },
+const GRADE_FIELD = { key: 'grade', label: 'Lớp', type: 'select', options: ['10', '11', '12'], required: true } as const;
+const EXAM_FIELD = {
+  key: 'exam',
+  label: 'Kỳ thi hướng tới',
+  type: 'select',
+  options: ['Tốt nghiệp THPT', 'Đánh giá năng lực', 'Học sinh giỏi'],
+  required: false,
+} as const;
+
+interface SeedCategory {
+  name: string;
+  slug: string;
+  description: string;
+  courseFields: readonly object[];
+  subjects: [name: string, slug: string][];
+}
+
+const CATEGORIES: SeedCategory[] = [
+  {
+    name: 'Lập trình Web',
+    slug: 'lap-trinh-web',
+    description: 'Frontend, backend và các công nghệ web hiện đại.',
+    courseFields: [{ key: 'tech_stack', label: 'Công nghệ chính', type: 'text', options: [], required: false }],
+    subjects: [
+      ['Frontend', 'frontend'],
+      ['Backend', 'backend'],
+      ['JavaScript và TypeScript', 'javascript-typescript'],
+    ],
+  },
+  {
+    name: 'Khoa học dữ liệu',
+    slug: 'khoa-hoc-du-lieu',
+    description: 'Phân tích dữ liệu, SQL và machine learning.',
+    courseFields: [],
+    subjects: [
+      ['Python cho dữ liệu', 'python-du-lieu'],
+      ['SQL', 'sql'],
+      ['Machine Learning', 'machine-learning'],
+    ],
+  },
+  {
+    name: 'Thiết kế',
+    slug: 'thiet-ke',
+    description: 'UI/UX và thiết kế đồ họa.',
+    courseFields: [],
+    subjects: [
+      ['UI/UX', 'ui-ux'],
+      ['Đồ họa', 'do-hoa'],
+    ],
+  },
+  {
+    name: 'Hóa học',
+    slug: 'hoa-hoc',
+    description: 'Hóa học phổ thông và luyện thi.',
+    courseFields: [GRADE_FIELD, EXAM_FIELD],
+    subjects: [
+      ['Hóa 10', 'hoa-10'],
+      ['Hóa 11', 'hoa-11'],
+      ['Hóa 12', 'hoa-12'],
+    ],
+  },
+  {
+    name: 'Toán học',
+    slug: 'toan-hoc',
+    description: 'Toán phổ thông và luyện thi.',
+    courseFields: [GRADE_FIELD, EXAM_FIELD],
+    subjects: [
+      ['Toán 10', 'toan-10'],
+      ['Toán 11', 'toan-11'],
+      ['Toán 12', 'toan-12'],
+    ],
+  },
+  {
+    name: 'Ngoại ngữ',
+    slug: 'ngoai-ngu',
+    description: 'Tiếng Anh, tiếng Nhật và luyện thi chứng chỉ.',
+    courseFields: [
+      {
+        key: 'language',
+        label: 'Ngôn ngữ',
+        type: 'select',
+        options: ['Tiếng Anh', 'Tiếng Nhật', 'Tiếng Hàn'],
+        required: true,
+      },
+      { key: 'target_level', label: 'Trình độ đầu ra (VD: IELTS 6.5, B2)', type: 'text', options: [], required: false },
+    ],
+    subjects: [
+      ['Tiếng Anh giao tiếp', 'tieng-anh-giao-tiep'],
+      ['IELTS', 'ielts'],
+      ['Tiếng Nhật', 'tieng-nhat'],
+    ],
+  },
+  {
+    name: 'Kỹ năng mềm',
+    slug: 'ky-nang-mem',
+    description: 'Thuyết trình, quản lý thời gian và làm việc nhóm.',
+    courseFields: [],
+    subjects: [
+      ['Thuyết trình', 'thuyet-trinh'],
+      ['Quản lý thời gian', 'quan-ly-thoi-gian'],
+    ],
+  },
 ];
+
+/** Course slug -> [subject slug, values for the category's extra fields]. */
+const COURSE_SUBJECTS: Record<string, [string, Record<string, string>?]> = {
+  'nextjs-co-ban-den-nang-cao': ['frontend', { tech_stack: 'Next.js, React' }],
+  'nestjs-rest-api': ['backend', { tech_stack: 'NestJS, Prisma, PostgreSQL' }],
+  'javascript-nen-tang': ['javascript-typescript'],
+  'typescript-thuc-chien': ['javascript-typescript', { tech_stack: 'TypeScript' }],
+  'python-phan-tich-du-lieu': ['python-du-lieu'],
+  'sql-tu-zero': ['sql'],
+  'machine-learning-co-ban': ['machine-learning'],
+  'hoa-hoc-12-luyen-thi': ['hoa-12', { grade: '12', exam: 'Tốt nghiệp THPT' }],
+  'hoa-huu-co-11': ['hoa-11', { grade: '11' }],
+  'hoa-hoc-10-cau-tao-nguyen-tu': ['hoa-10', { grade: '10' }],
+  'toan-12-ham-so': ['toan-12', { grade: '12', exam: 'Tốt nghiệp THPT' }],
+  'tieng-anh-giao-tiep-di-lam': ['tieng-anh-giao-tiep', { language: 'Tiếng Anh', target_level: 'B1-B2' }],
+  'ielts-65-cap-toc': ['ielts', { language: 'Tiếng Anh', target_level: 'IELTS 6.5' }],
+  'figma-ui-ux-thuc-chien': ['ui-ux'],
+  'ky-nang-thuyet-trinh': ['thuyet-trinh'],
+};
 
 interface SeedCourse {
   title: string;
@@ -459,15 +572,32 @@ const REVIEW_COMMENTS: Record<number, string[]> = {
 
 async function seedCatalog(users: Map<string, string>) {
   const categoryIds = new Map<string, string>();
-  for (const c of CATEGORIES) {
-    const row = await prisma.category.upsert({ where: { slug: c.slug }, update: { name: c.name }, create: c });
+  const subjectIds = new Map<string, string>();
+  for (const [position, { subjects, courseFields, ...c }] of CATEGORIES.entries()) {
+    const data = { ...c, position, courseFields: courseFields as object[] };
+    const row = await prisma.category.upsert({ where: { slug: c.slug }, update: data, create: data });
     categoryIds.set(c.slug, row.id);
+    for (const [i, [name, slug]] of subjects.entries()) {
+      const subject = await prisma.subject.upsert({
+        where: { categoryId_slug: { categoryId: row.id, slug } },
+        update: { name, position: i },
+        create: { categoryId: row.id, name, slug, position: i },
+      });
+      subjectIds.set(slug, subject.id);
+    }
   }
+  const subjectFields = (courseSlug: string) => {
+    const [subjectSlug, extra] = COURSE_SUBJECTS[courseSlug] ?? [];
+    return { subjectId: subjectSlug ? subjectIds.get(subjectSlug) : undefined, extraFields: extra ?? {} };
+  };
 
   for (const [i, c] of COURSES.entries()) {
     const exists = await prisma.course.findUnique({ where: { slug: c.slug }, select: { id: true } });
     if (exists) {
-      await prisma.course.update({ where: { id: exists.id }, data: { status: c.status, categoryId: categoryIds.get(c.category) } });
+      await prisma.course.update({
+        where: { id: exists.id },
+        data: { status: c.status, categoryId: categoryIds.get(c.category), ...subjectFields(c.slug) },
+      });
       continue;
     }
     const createdAt = daysAgo(60 - i * 3);
@@ -487,6 +617,7 @@ async function seedCatalog(users: Map<string, string>) {
         createdAt,
         instructorId: users.get(c.instructor)!,
         categoryId: categoryIds.get(c.category)!,
+        ...subjectFields(c.slug),
         sections: {
           create: c.sections.map(([title, lessons], s) => ({
             title,
@@ -507,6 +638,76 @@ async function seedCatalog(users: Map<string, string>) {
 }
 
 /** Paid VNPay orders (one per student) that enroll students into published courses, plus reviews. */
+/** Every instructor may teach the subjects of their own courses; plus sample applications in each state. */
+async function seedInstructors(users: Map<string, string>) {
+  const courses = await prisma.course.findMany({ where: { subjectId: { not: null } }, select: { instructorId: true, subjectId: true } });
+  await prisma.instructorSubject.createMany({
+    data: courses.map((c) => ({ userId: c.instructorId, subjectId: c.subjectId! })),
+    skipDuplicates: true,
+  });
+
+  const subjectId = async (slug: string) => (await prisma.subject.findFirstOrThrow({ where: { slug }, select: { id: true } })).id;
+  const adminId = users.get('admin@elearning.local')!;
+  const samples = [
+    {
+      email: 'hocvien02@elearning.local',
+      subjects: ['hoa-10', 'hoa-11'],
+      headline: 'Sinh viên năm cuối sư phạm Hóa, gia sư 3 năm',
+      status: 'PENDING',
+    },
+    {
+      email: 'hocvien03@elearning.local',
+      subjects: ['frontend'],
+      headline: 'Frontend developer 4 năm kinh nghiệm React',
+      status: 'PENDING',
+    },
+    {
+      email: 'tran.anh@elearning.local',
+      subjects: ['tieng-nhat'],
+      headline: 'Muốn mở thêm khóa tiếng Nhật N5 (JLPT N2)',
+      status: 'PENDING',
+    },
+    {
+      email: 'hocvien04@elearning.local',
+      subjects: ['ielts'],
+      headline: 'IELTS 7.0, muốn dạy luyện thi',
+      status: 'REJECTED',
+      note: 'Chưa có kinh nghiệm giảng dạy và bài giảng mẫu. Bạn có thể gửi lại kèm video dạy thử.',
+    },
+    {
+      email: 'le.hoa@elearning.local',
+      subjects: ['hoa-10', 'hoa-11', 'hoa-12'],
+      headline: 'Giáo viên Hóa THPT chuyên, 12 năm luyện thi',
+      status: 'APPROVED',
+      note: 'Hồ sơ tốt.',
+    },
+  ] as const;
+
+  for (const [i, a] of samples.entries()) {
+    const userId = users.get(a.email)!;
+    if (await prisma.instructorApplication.count({ where: { userId } })) continue;
+    const decided = a.status !== 'PENDING';
+    const ids = await Promise.all(a.subjects.map(subjectId));
+    await prisma.instructorApplication.create({
+      data: {
+        userId,
+        status: a.status,
+        headline: a.headline,
+        bio: 'Tôi yêu thích việc giảng dạy và luôn cố gắng giải thích kiến thức theo cách dễ hiểu, gắn với ví dụ thực tế.',
+        experience: 'Đã dạy kèm và hướng dẫn nhiều học viên; có giáo án và bài tập tự biên soạn cho từng chủ đề.',
+        links: ['https://example.com/portfolio'],
+        createdAt: daysAgo(10 - i),
+        reviewedById: decided ? adminId : null,
+        reviewedAt: decided ? daysAgo(8 - i) : null,
+        reviewNote: 'note' in a ? a.note : null,
+        subjects: {
+          create: ids.map((id) => ({ subjectId: id, approved: decided ? a.status === 'APPROVED' : null })),
+        },
+      },
+    });
+  }
+}
+
 async function seedSales() {
   const already = await prisma.order.count({ where: { code: { startsWith: 'SEED' } } });
   if (already > 0) return;
@@ -575,6 +776,7 @@ async function main() {
   const roleIds = await seedRoles();
   const users = await seedUsers(roleIds, passwordHash);
   await seedCatalog(users);
+  await seedInstructors(users);
   await seedSales();
 
   const [userCount, courseCount, enrollmentCount, reviewCount] = await Promise.all([

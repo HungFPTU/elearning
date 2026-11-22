@@ -3,6 +3,8 @@ import Link from 'next/link';
 const SECTIONS = [
   { href: '/admin/users', title: 'Người dùng', text: 'Xem tài khoản, đổi role, khóa tài khoản, cấp quyền riêng.' },
   { href: '/admin/roles', title: 'Role và quyền', text: 'Mỗi role là một nhóm quyền. Chủ sở hữu chỉnh được quyền của từng role.' },
+  { href: '/admin/instructor-applications', title: 'Đơn giảng viên', text: 'Duyệt hoặc từ chối đơn, chọn môn được dạy.' },
+  { href: '/admin/categories', title: 'Danh mục và môn học', text: 'Cây danh mục, môn học và các trường riêng của từng danh mục.' },
   { href: '/admin/audit-logs', title: 'Nhật ký thao tác', text: 'Ai đã làm gì, lúc nào, từ đâu.' },
 ];
 

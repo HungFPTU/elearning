@@ -78,6 +78,7 @@ async function CoursesContent({ searchParams }: { searchParams: PageProps<'/cour
   const search: Search = {
     q: first(raw.q),
     category: first(raw.category),
+    subject: first(raw.subject),
     level: first(raw.level),
     sort: first(raw.sort),
     page: first(raw.page),

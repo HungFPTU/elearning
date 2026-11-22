@@ -6,7 +6,7 @@ import { Role, type SystemRole } from './enums.js';
  */
 export const PERMISSIONS = {
   'course.learn': { group: 'Học tập', label: 'Mua và học khóa học, viết đánh giá' },
-  'instructor_application.submit': { group: 'Học tập', label: 'Gửi đơn đăng ký giảng viên' },
+  'instructor_application.submit': { group: 'Học tập', label: 'Gửi đơn đăng ký giảng viên hoặc xin dạy thêm môn' },
 
   'course.create': { group: 'Giảng dạy', label: 'Tạo khóa học mới' },
   'course.update_own': { group: 'Giảng dạy', label: 'Sửa khóa học của mình' },
@@ -42,8 +42,10 @@ const TEACHER: PermissionKey[] = ['course.create', 'course.update_own', 'course.
 /** Permissions given to the system roles when they are first created. Owners can change them later. */
 export const DEFAULT_ROLE_PERMISSIONS: Record<SystemRole, PermissionKey[]> = {
   [Role.USER]: [...LEARNER, 'instructor_application.submit'],
-  [Role.INSTRUCTOR]: [...LEARNER, ...TEACHER],
-  [Role.ADMIN]: PERMISSION_KEYS.filter((k) => k !== 'role.manage' && k !== 'instructor_application.submit'),
+  // Instructors can apply again to teach more subjects.
+  [Role.INSTRUCTOR]: [...LEARNER, 'instructor_application.submit', ...TEACHER],
+  // Admins hold every role-level permission below owner, so they can hand out the Instructor role.
+  [Role.ADMIN]: PERMISSION_KEYS.filter((k) => k !== 'role.manage'),
   // Owners bypass every check; the list is only for display.
   [Role.OWNER]: [...PERMISSION_KEYS],
 };
@@ -62,4 +64,14 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   'role.create': 'Tạo role',
   'role.permissions_change': 'Đổi quyền của role',
   'role.delete': 'Xóa role',
+  'user.subjects_change': 'Đổi môn được dạy',
+  'instructor_application.submit': 'Gửi đơn giảng viên',
+  'instructor_application.approve': 'Duyệt đơn giảng viên',
+  'instructor_application.reject': 'Từ chối đơn giảng viên',
+  'category.create': 'Tạo danh mục',
+  'category.update': 'Sửa danh mục',
+  'category.delete': 'Xóa danh mục',
+  'subject.create': 'Tạo môn học',
+  'subject.update': 'Sửa môn học',
+  'subject.delete': 'Xóa môn học',
 };

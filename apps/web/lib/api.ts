@@ -1,4 +1,4 @@
-import type { ApiError as ApiErrorBody, CategoryDto, CourseDetailDto, CourseSummaryDto, Paginated } from '@elearning/shared';
+import type { ApiError as ApiErrorBody, CategoryTreeDto, CourseDetailDto, CourseSummaryDto, Paginated } from '@elearning/shared';
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api';
 
@@ -37,5 +37,6 @@ export const api = {
     return apiFetch<Paginated<CourseSummaryDto>>(`/courses?${qs.toString()}`);
   },
   getCourse: (slug: string) => apiFetch<CourseDetailDto>(`/courses/${encodeURIComponent(slug)}`),
-  listCategories: () => apiFetch<CategoryDto[]>('/categories'),
+  listCategories: () => apiFetch<CategoryTreeDto[]>('/categories'),
+  getCategory: (slug: string) => apiFetch<CategoryTreeDto>(`/categories/${encodeURIComponent(slug)}`),
 };
