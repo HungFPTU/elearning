@@ -50,15 +50,15 @@ Status: `done` = exists in code · a number = MVP milestone that builds it.
 
 | Screen | Route | Who | Status |
 |---|---|---|---|
-| Dashboard | `/admin` | admin | 5 |
-| Users list | `/admin/users` | admin | 2 |
-| User detail: role, permission overrides, lock | `/admin/users/[id]` | admin | 2 |
-| Roles and their permissions | `/admin/roles`, `/admin/roles/[id]` | owner | 2 |
+| Dashboard (links now, stats in milestone 5) | `/admin` | admin | done |
+| Users list | `/admin/users` | admin | done |
+| User detail: role, permission overrides, lock | `/admin/users/[id]` | admin | done |
+| Roles and their permissions | `/admin/roles`, `/admin/roles/[key]` | owner edits, admin views | done |
 | Instructor applications | `/admin/instructor-applications` | admin | 2 |
 | Course moderation queue | `/admin/courses` | admin | 2 |
 | Review one course submission | `/admin/courses/[id]/review` | admin | 2 |
 | Categories and subjects tree | `/admin/categories` | admin | 2 |
-| Audit log | `/admin/audit-logs` | admin | 2 |
+| Audit log | `/admin/audit-logs` | admin | done |
 | Orders, refunds | `/admin/orders` | admin | 5 |
 | Media library | `/admin/media` | admin | 5 |
 | Coupons | `/admin/coupons` | admin | 6 |

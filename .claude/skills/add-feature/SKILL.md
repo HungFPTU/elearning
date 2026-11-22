@@ -16,13 +16,15 @@ Always read `CLAUDE.md` first. Then:
 4. **Shared contract**: add enums / types / zod schemas to `packages/shared/src`, export
    them from `index.ts`.
 5. **API module** in `apps/api/src/<domain>/`:
-   - `dto/` with class-validator DTOs
-   - `<domain>.service.ts` — all Prisma + business rules, throws HTTP exceptions with a `code`
-   - `<domain>.controller.ts` — thin; `@Public()` / `@Roles()` as needed
+   - input validated with the shared zod schema: `@Body({ schema })` / `@Query({ schema })`
+   - `<domain>.service.ts`: all Prisma + business rules, throws with the `app-exception.ts` helpers
+   - `<domain>.controller.ts`: thin; `@Public()` or `@RequirePermission('...')` as needed
+     (new permission? add it to `PERMISSIONS` and `DEFAULT_ROLE_PERMISSIONS` in shared)
+   - record admin/sensitive actions with `AuditService.record(..., tx)` in the same transaction
    - register the module in `app.module.ts`
    - unit test the service's business rules
 6. **Web**: API call in `apps/web/lib/api.ts` (or a query hook), page under `app/`,
-   components under `components/<feature>`. Vietnamese UI copy.
+   components under `components/<feature>`. Vietnamese UI copy. Add the page to `docs/screens.md`.
 7. **Env**: any new variable goes into `.env.example` with a comment.
 8. **Verify**: `pnpm typecheck && pnpm lint && pnpm test && pnpm build`.
 9. **Commit** with Conventional Commits. **Ask Bond before pushing or opening a PR.**

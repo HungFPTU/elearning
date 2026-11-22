@@ -1,4 +1,5 @@
-import type { CourseLevel, Role } from './enums.js';
+import type { CourseLevel, PermissionEffect, Role, UserStatus } from './enums.js';
+import type { PermissionKey } from './permissions.js';
 
 export interface Paginated<T> {
   items: T[];
@@ -20,6 +21,71 @@ export interface UserDto {
   fullName: string;
   avatarUrl: string | null;
   role: Role;
+}
+
+/** `GET /me`: the signed-in user plus what they may do. */
+export interface MeDto extends UserDto {
+  status: UserStatus;
+  /** Effective permissions (role + overrides). Owners get every key. */
+  permissions: PermissionKey[];
+}
+
+export interface RoleSummaryDto {
+  key: Role;
+  name: string;
+}
+
+export interface AdminUserListItemDto {
+  id: string;
+  email: string;
+  fullName: string;
+  avatarUrl: string | null;
+  role: RoleSummaryDto;
+  status: UserStatus;
+  createdAt: string;
+}
+
+export interface PermissionOverrideDto {
+  permissionKey: PermissionKey;
+  effect: PermissionEffect;
+  reason: string | null;
+  grantedBy: { id: string; fullName: string } | null;
+  createdAt: string;
+}
+
+export interface AdminUserDetailDto extends AdminUserListItemDto {
+  rolePermissions: PermissionKey[];
+  overrides: PermissionOverrideDto[];
+  effectivePermissions: PermissionKey[];
+  courseCount: number;
+  enrollmentCount: number;
+}
+
+export interface RoleDto extends RoleSummaryDto {
+  description: string | null;
+  isSystem: boolean;
+  userCount: number;
+  permissions: PermissionKey[];
+}
+
+export interface PermissionDto {
+  key: PermissionKey;
+  group: string;
+  label: string;
+}
+
+export interface AuditLogDto {
+  id: string;
+  action: string;
+  actor: { id: string; fullName: string; email: string } | null;
+  actorRole: string | null;
+  targetType: string | null;
+  targetId: string | null;
+  before: unknown;
+  after: unknown;
+  ip: string | null;
+  userAgent: string | null;
+  createdAt: string;
 }
 
 export interface AuthTokens {

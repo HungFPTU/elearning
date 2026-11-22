@@ -1,6 +1,6 @@
 'use client';
 
-import type { AuthResponse, AuthTokens, LoginInput, RegisterInput, UserDto } from '@elearning/shared';
+import type { AuthResponse, AuthTokens, LoginInput, MeDto, PermissionKey, RegisterInput } from '@elearning/shared';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createContext, type ReactNode, useCallback, useContext, useMemo } from 'react';
 import { ApiError, apiFetch } from '@/lib/api';
@@ -10,8 +10,10 @@ const STORAGE_KEY = 'elearning.auth';
 const ME_KEY = ['me'] as const;
 
 interface AuthContextValue {
-  user: UserDto | null;
+  user: MeDto | null;
   isLoading: boolean;
+  /** True when the signed-in user has the permission (UI hint only; the API enforces it). */
+  can: (permission: PermissionKey) => boolean;
   login: (input: LoginInput) => Promise<void>;
   register: (input: RegisterInput) => Promise<void>;
   logout: () => Promise<void>;
@@ -37,7 +39,7 @@ function writeTokens(tokens: AuthTokens | null) {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
-  const setUser = useCallback((u: UserDto | null) => queryClient.setQueryData(ME_KEY, u), [queryClient]);
+  const setUser = useCallback((u: MeDto | null) => queryClient.setQueryData(ME_KEY, u), [queryClient]);
 
   const authFetch = useCallback(async <T,>(path: string, init: RequestInit = {}): Promise<T> => {
     const tokens = readTokens();
@@ -63,21 +65,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Runs only in the browser (no server prefetch), so localStorage is safe here.
   const me = useQuery({
     queryKey: ME_KEY,
-    queryFn: () => (readTokens() ? authFetch<UserDto>('/me').catch(() => null) : null),
+    queryFn: () => (readTokens() ? authFetch<MeDto>('/me').catch(() => null) : null),
     staleTime: Infinity,
   });
   const user = me.data ?? null;
   const isLoading = me.isPending;
 
-  const handleAuth = useCallback((res: AuthResponse) => {
-    writeTokens({ accessToken: res.accessToken, refreshToken: res.refreshToken });
-    setUser(res.user);
-  }, [setUser]);
+  // The auth response has no permissions, so load the full profile from /me.
+  const handleAuth = useCallback(
+    async (res: AuthResponse) => {
+      writeTokens({ accessToken: res.accessToken, refreshToken: res.refreshToken });
+      await queryClient.refetchQueries({ queryKey: ME_KEY });
+    },
+    [queryClient],
+  );
+  const can = useCallback((permission: PermissionKey) => user?.permissions.includes(permission) ?? false, [user]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
       isLoading,
+      can,
       authFetch,
       login: async (input) =>
         handleAuth(await apiFetch<AuthResponse>('/auth/login', { method: 'POST', body: JSON.stringify(input) })),
@@ -87,6 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const tokens = readTokens();
         writeTokens(null);
         setUser(null);
+        queryClient.removeQueries({ queryKey: ['admin'] });
         if (tokens) {
           await apiFetch('/auth/logout', { method: 'POST', body: JSON.stringify({ refreshToken: tokens.refreshToken }) }).catch(
             () => undefined,
@@ -94,7 +103,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       },
     }),
-    [user, isLoading, authFetch, handleAuth, setUser],
+    [user, isLoading, can, authFetch, handleAuth, setUser, queryClient],
   );
 
   return <AuthContext value={value}>{children}</AuthContext>;

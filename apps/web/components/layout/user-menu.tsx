@@ -5,7 +5,7 @@ import { buttonClasses } from '@/components/ui/button';
 import { useAuth } from '@/components/providers/auth-provider';
 
 export function UserMenu() {
-  const { user, isLoading, logout } = useAuth();
+  const { user, isLoading, logout, can } = useAuth();
   if (isLoading) return <div className="h-10 w-32" />;
   if (!user) {
     return (
@@ -21,6 +21,11 @@ export function UserMenu() {
   }
   return (
     <div className="flex items-center gap-3">
+      {can('admin.access') && (
+        <Link href="/admin" className={buttonClasses('ghost')}>
+          Quản trị
+        </Link>
+      )}
       <span className="text-sm">
         Xin chào, <strong>{user.fullName}</strong>
       </span>

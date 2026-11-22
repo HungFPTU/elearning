@@ -1,16 +1,20 @@
-import { Module } from '@nestjs/common';
+import { type MiddlewareConsumer, Module, type NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD, APP_PIPE } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { StandardSchemaValidationPipe } from '@nestjs/common';
+import { AccessModule } from './access/access.module.js';
+import { AdminModule } from './admin/admin.module.js';
 import { AppController } from './app.controller.js';
+import { AuditModule } from './audit/audit.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { CategoriesModule } from './categories/categories.module.js';
 import { badRequest } from './common/app-exception.js';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter.js';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
-import { RolesGuard } from './common/guards/roles.guard.js';
+import { PermissionsGuard } from './common/guards/permissions.guard.js';
+import { RequestIdMiddleware } from './common/middleware/request-id.middleware.js';
 import { type Env, validateEnv } from './config/env.js';
 import { CoursesModule } from './courses/courses.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
@@ -29,10 +33,13 @@ import { UsersModule } from './users/users.module.js';
     }),
     ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 120 }]),
     PrismaModule,
+    AccessModule,
+    AuditModule,
     AuthModule,
     UsersModule,
     CategoriesModule,
     CoursesModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [
@@ -45,7 +52,11 @@ import { UsersModule } from './users/users.module.js';
     },
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
-    { provide: APP_GUARD, useClass: RolesGuard },
+    { provide: APP_GUARD, useClass: PermissionsGuard },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): void {
+    consumer.apply(RequestIdMiddleware).forRoutes('*path');
+  }
+}

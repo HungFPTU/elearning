@@ -47,7 +47,7 @@ Tooling: **pnpm workspaces** (root scripts use `pnpm -r`; no Turborepo, its Wind
 | `cp .env.example .env` | create local env (web also reads `apps/web/.env.local` for `NEXT_PUBLIC_*`) |
 | `docker compose up -d` | start Postgres + Redis |
 | `pnpm db:migrate` | apply Prisma migrations (dev) |
-| `pnpm db:seed` | seed sample data (accounts `admin@` / `instructor@` / `student@elearning.local`, password `Password123!`) |
+| `pnpm db:seed` | seed sample data: owner from `OWNER_EMAIL`, `admin@` / `instructor@` / `student@elearning.local` and more, ~15 courses, orders, reviews (password `Password123!`) |
 | `pnpm dev` | run web + api in watch mode |
 | `pnpm build` / `pnpm lint` / `pnpm typecheck` / `pnpm test` | across all workspaces |
 
@@ -84,8 +84,13 @@ Tooling: **pnpm workspaces** (root scripts use `pnpm -r`; no Turborepo, its Wind
 - **Controllers are thin**: parse input, call a service, return the result. No Prisma in controllers.
 - **Prisma only in services** via the injected `PrismaService`. Use `select`/`include`
   deliberately; never return `passwordHash` or other secrets.
-- Auth: global `JwtAuthGuard`; mark open routes with `@Public()`. Restrict by role with
-  `@Roles(Role.ADMIN, ...)` + `RolesGuard`. Get the current user with `@CurrentUser()`.
+- Auth: global `JwtAuthGuard`; mark open routes with `@Public()`. Restrict by **permission**, never by role
+  name: `@RequirePermission('course.moderate')` (global `PermissionsGuard`; class + method decorators add up).
+  Get the current user with `@CurrentUser()`: `{ id, role, permissions }`, loaded from the DB, not the token.
+  See "Roles and permissions" below.
+- **Audit log**: every admin action and auth event calls `AuditService.record(entry, ctx, tx)` inside the
+  same transaction as the change. Get `ctx` (ip, user agent, request id) with `@ReqContext()`.
+  New action codes go into `AUDIT_ACTION_LABELS` in `@elearning/shared`.
 - **Unified error format** (global `AllExceptionsFilter`):
   `{ "statusCode": number, "message": string, "code": string }` where `code` is
   UPPER_SNAKE (e.g. `COURSE_NOT_FOUND`) and `message` is Vietnamese, user-facing.
@@ -108,6 +113,21 @@ Tooling: **pnpm workspaces** (root scripts use `pnpm -r`; no Turborepo, its Wind
 - Forms: react-hook-form + zod schema from `@elearning/shared` when one exists.
 - UI primitives in `components/ui` (shadcn style); feature components in `components/<feature>`.
 - Format money with `formatVnd()` from `@elearning/shared`; never format by hand.
+
+### Roles and permissions
+- Permission catalog: `PERMISSIONS` in `packages/shared/src/permissions.ts`. Adding a key there is all it
+  takes; the API syncs it into the `permissions` table on boot. Default grants for the system roles live in
+  `DEFAULT_ROLE_PERMISSIONS` (applied only to a system role that has no permissions yet).
+- Roles: `USER` (default on sign-up) < `INSTRUCTOR` (own courses) < `ADMIN` (everything except permission
+  management) < `OWNER` (everything, bypasses checks). Owners can create custom roles.
+- Effective permissions = role permissions + user `GRANT` overrides − `DENY` overrides; DENY wins.
+  Logic in `apps/api/src/access/resolve-permissions.ts`, cached 30 s in `PermissionsService`; call
+  `invalidateUser(id)` / `invalidateAll()` after changing roles, overrides or status.
+- Who may change whom lives in `apps/api/src/admin/admin-rules.ts`: only an owner grants or removes
+  ADMIN/OWNER or touches admin accounts, there is always at least one owner, nobody locks themselves or an
+  owner, and a non-owner can never grant a permission they do not hold.
+- Web: `useAuth().can('perm')` to show or hide UI. It is only a hint; the API always enforces.
+- The owner account comes from `OWNER_EMAIL` in `.env` (seed only). Never hard-code it.
 
 ### Database (Prisma)
 - Schema in `apps/api/prisma/schema.prisma`, config in `apps/api/prisma.config.ts` (reads the root `.env`).
