@@ -8,7 +8,8 @@ description: Step-by-step workflow for adding a feature or domain module to the 
 Always read `CLAUDE.md` first. Then:
 
 1. **Clarify scope** in Vietnamese with Bond if the ask is ambiguous; otherwise pick
-   the most likely reading and state it.
+   the most likely reading and state it. For anything bigger than a small fix, write the proposal first
+   (`feature-proposal` skill: recommendation, why, concrete solution).
 2. **Branch**: `git checkout -b feat/<short-name>` from an up-to-date `main`.
 3. **Data model** (if needed): edit `apps/api/prisma/schema.prisma` following the DB rules
    (cuid ids, timestamps, `@@map` snake_case, money as Int VND), then
@@ -25,7 +26,11 @@ Always read `CLAUDE.md` first. Then:
    - unit test the service's business rules
 6. **Web**: API call in `apps/web/lib/api.ts` (or a query hook), page under `app/`,
    components under `components/<feature>`. Vietnamese UI copy. Add the page to `docs/screens.md`.
+   Follow the `ui-design` skill (four states, 375 px, accessibility, visual check).
+   Add the feature's cases to `docs/test-cases.md` (`qa-test-cases` skill); every P0 case gets an
+   automated test.
 7. **Env**: any new variable goes into `.env.example` with a comment.
-8. **Verify**: `pnpm typecheck && pnpm lint && pnpm test && pnpm build`.
+8. **Verify**: `pnpm typecheck && pnpm lint && pnpm test && pnpm build`, run the touched cases, then go
+   through the `backend-review` checklist and a `strict-pm` review. Bugs found → `bug-triage`.
 9. **Commit** with Conventional Commits. **Ask Bond before pushing or opening a PR.**
 10. Update `CLAUDE.md` if a convention changed or a new one was introduced.
