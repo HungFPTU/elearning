@@ -33,8 +33,8 @@ export class AuthController {
 
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  refresh(@Body({ schema: refreshSchema }) body: RefreshInput): Promise<AuthTokens> {
-    return this.auth.refresh(body.refreshToken);
+  refresh(@Body({ schema: refreshSchema }) body: RefreshInput, @ReqContext() ctx: RequestContext): Promise<AuthTokens> {
+    return this.auth.refresh(body.refreshToken, ctx);
   }
 
   @Post('logout')

@@ -11,6 +11,11 @@ const DEFAULT_CODES: Partial<Record<number, string>> = {
   [HttpStatus.TOO_MANY_REQUESTS]: 'TOO_MANY_REQUESTS',
 };
 
+/** Messages for framework errors that never carry our own Vietnamese text (e.g. the throttler's). */
+const FIXED_MESSAGES: Partial<Record<number, string>> = {
+  [HttpStatus.TOO_MANY_REQUESTS]: 'Bạn thao tác quá nhanh, vui lòng thử lại sau ít phút',
+};
+
 /** Maps every error to the unified `{ statusCode, message, code }` body. */
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
@@ -32,6 +37,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const statusCode = exception.getStatus();
     const response = exception.getResponse();
     const fallbackCode = DEFAULT_CODES[statusCode] ?? 'ERROR';
+    const fixedMessage = FIXED_MESSAGES[statusCode];
+    if (fixedMessage) return { statusCode, message: fixedMessage, code: fallbackCode };
 
     if (typeof response === 'string') {
       return { statusCode, message: response, code: fallbackCode };

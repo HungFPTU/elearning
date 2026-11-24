@@ -32,6 +32,8 @@ Viết bằng tiếng Việt vì đây là checklist cho người test; tên API
 | AUTH-15 | P0 | Admin khóa user đang đăng nhập; user gọi API tiếp | 403 `ACCOUNT_LOCKED` ngay (quyền đọc từ DB, cache tối đa 30 giây), refresh bị từ chối | — | Pass |
 | AUTH-16 | P1 | Web: access token hết hạn khi đang ở trang admin | Tự refresh một lần, không đá ra trang đăng nhập | — | |
 | AUTH-17 | P1 | Web: refresh token hết hạn | Chuyển về `/login`, đăng nhập lại quay về trang đang xem | — | |
+| AUTH-18 | P0 | Web: access token hết hạn trên trang gọi nhiều API cần đăng nhập cùng lúc, hoặc mở 2 tab | Chỉ một request refresh, không bị đăng xuất | — | Pass sau khi sửa BUG-5 |
+| AUTH-19 | P0 | Dùng lại refresh token đã xoay sau hơn 10 giây | 401, mọi phiên của user bị thu hồi, audit `auth.refresh_reuse` | unit | Pass sau khi sửa BUG-2 |
 
 ## 2. Phân quyền (RBAC)
 
@@ -150,7 +152,7 @@ Mỗi bug ghi: bị sao, vì sao nguy hiểm, giải pháp, trạng thái.
 - **Vì sao nguy hiểm:** kẻ xấu dò được danh sách email học viên, rồi dùng để spam hoặc thử mật khẩu bị lộ ở trang khác.
 - **Giải pháp:** khi không tìm thấy user, vẫn chạy `bcrypt.compare` với một hash giả cố định, để hai trường hợp tốn
   cùng thời gian.
-- **Trạng thái:** mở.
+- **Trạng thái:** đã sửa trên nhánh `fix/auth-hardening`, chạy lại: Pass.
 
 ### BUG-2 · Dùng lại refresh token cũ không làm gì cả
 
@@ -159,7 +161,7 @@ Mỗi bug ghi: bị sao, vì sao nguy hiểm, giải pháp, trạng thái.
   trước, họ giữ phiên vô thời hạn mà hệ thống không phản ứng.
 - **Giải pháp:** khi gặp token đã thu hồi, thu hồi **mọi** refresh token còn hạn của user đó và ghi audit
   `auth.refresh_reuse`. Người dùng thật chỉ phải đăng nhập lại.
-- **Trạng thái:** mở.
+- **Trạng thái:** đã sửa trên nhánh `fix/auth-hardening`, chạy lại: Pass.
 
 ### BUG-3 · Refresh đồng thời có thể sinh hai phiên (rủi ro, chưa tái hiện được)
 
@@ -167,13 +169,30 @@ Mỗi bug ghi: bị sao, vì sao nguy hiểm, giải pháp, trạng thái.
   cùng qua bước kiểm tra. Thử 5 request song song thì chỉ 1 thành công, nên chưa tái hiện được, nhưng khe hở vẫn có.
 - **Vì sao nguy hiểm:** một token thành hai phiên hợp lệ, làm vô hiệu cơ chế xoay token.
 - **Giải pháp:** thu hồi bằng `updateMany({ where: { id, revokedAt: null } })` và chỉ cấp token mới khi `count === 1`.
-- **Trạng thái:** mở.
+- **Trạng thái:** đã sửa trên nhánh `fix/auth-hardening`, chạy lại: Pass.
 
 ### BUG-4 · Một số thông báo lỗi hiện tiếng Anh
 
 - **Bị sao:** các rule zod không ghi thông báo riêng (giới hạn `pageSize`, độ dài tối đa, `enum`) trả câu mặc định
   tiếng Anh như "Too big: expected number to be <=50"; lỗi 429 trả "ThrottlerException: Too Many Requests".
+  Thêm một lỗi cùng gốc: mật khẩu dài hơn 72 ký tự lại báo "Vui lòng nhập mật khẩu", vì thông báo đặt ở cấp
+  `z.string({ error })` áp cho mọi lỗi của trường đó.
 - **Vì sao nguy hiểm:** sai quy ước `message` tiếng Việt cho người dùng; form trên web hiện câu tiếng Anh khó hiểu.
 - **Giải pháp:** bật locale tiếng Việt có sẵn của zod (`z.config(z.locales.vi())`) một lần trong `@elearning/shared`,
-  để cả web và API dùng chung; map lỗi throttler sang `"Bạn thao tác quá nhanh, vui lòng thử lại sau ít phút"`.
-- **Trạng thái:** mở.
+  để cả web và API dùng chung, kèm câu thân thiện cho lỗi độ dài và giá trị không hợp lệ; map lỗi 429 sang
+  `"Bạn thao tác quá nhanh, vui lòng thử lại sau ít phút"`; ghi thông báo riêng cho từng `.max()` có `error` cấp trường.
+- **Trạng thái:** đã sửa trên nhánh `fix/auth-hardening`, chạy lại: Pass.
+
+### BUG-5 · Web có thể tự đăng xuất người dùng khi nhiều request cùng refresh
+
+- **Bị sao:** khi access token hết hạn, mỗi request bị 401 tự gọi `/auth/refresh` với cùng một refresh token.
+  API xoay token nên chỉ request đầu thành công; các request sau thất bại và xóa luôn token mới trong
+  localStorage, làm người dùng bị đăng xuất. Hai tab mở cùng lúc cũng gặp. Tìm ra khi đọc code; các trang hiện tại
+  chỉ gọi một API cần đăng nhập mỗi lúc nên chưa lộ ra, nhưng trang học viên (milestone 4) sẽ gặp ngay.
+- **Vì sao nguy hiểm:** người dùng bị đá ra giữa chừng mỗi 15 phút một cách ngẫu nhiên, nhất là khi đang học
+  hoặc đang thanh toán.
+- **Giải pháp:** chỉ một refresh chạy tại một thời điểm (dùng chung promise), request đến sau thì dùng token
+  vừa làm mới; nếu refresh thất bại nhưng tab khác đã có token mới trong localStorage thì dùng token đó thay vì
+  đăng xuất. API cho 10 giây ân hạn để hai tab refresh cùng lúc không bị coi là trộm token.
+- **Trạng thái:** đã sửa trên nhánh `fix/auth-hardening`; kiểm bằng Playwright (token hết hạn giữa phiên, vẫn
+  đăng nhập, đúng 1 lần refresh).
