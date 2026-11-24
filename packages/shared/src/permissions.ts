@@ -58,6 +58,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   'auth.login': 'Đăng nhập',
   'auth.login_failed': 'Đăng nhập thất bại',
   'auth.logout': 'Đăng xuất',
+  'auth.refresh_reuse': 'Phát hiện dùng lại phiên cũ, đã đăng xuất mọi thiết bị',
   'user.role_change': 'Đổi role',
   'user.status_change': 'Khóa / mở khóa tài khoản',
   'user.overrides_change': 'Đổi quyền riêng của user',

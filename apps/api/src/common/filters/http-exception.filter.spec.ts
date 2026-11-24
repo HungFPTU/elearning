@@ -1,4 +1,5 @@
 import { type ArgumentsHost, Logger, NotFoundException } from '@nestjs/common';
+import { ThrottlerException } from '@nestjs/throttler';
 import { notFound } from '../app-exception.js';
 import { AllExceptionsFilter } from './http-exception.filter.js';
 
@@ -17,6 +18,14 @@ describe('AllExceptionsFilter', () => {
 
   it('derives a code for built-in Nest exceptions', () => {
     expect(run(new NotFoundException('missing')).body).toMatchObject({ statusCode: 404, code: 'NOT_FOUND' });
+  });
+
+  it('answers rate limiting in Vietnamese', () => {
+    expect(run(new ThrottlerException()).body).toEqual({
+      statusCode: 429,
+      message: 'Bạn thao tác quá nhanh, vui lòng thử lại sau ít phút',
+      code: 'TOO_MANY_REQUESTS',
+    });
   });
 
   it('hides details of unknown errors', () => {

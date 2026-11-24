@@ -37,6 +37,30 @@ function writeTokens(tokens: AuthTokens | null) {
   else localStorage.removeItem(STORAGE_KEY);
 }
 
+// One refresh at a time: the API rotates refresh tokens, so parallel refreshes with the same token would
+// all fail but the first, and the losers used to sign the user out.
+let refreshInFlight: { refreshToken: string; promise: Promise<AuthTokens | null> } | null = null;
+
+/** Refreshes once per refresh token and stores the result. Resolves null when the session is really over. */
+function refreshTokens(refreshToken: string): Promise<AuthTokens | null> {
+  if (refreshInFlight?.refreshToken === refreshToken) return refreshInFlight.promise;
+  const promise = apiFetch<AuthTokens>('/auth/refresh', { method: 'POST', body: JSON.stringify({ refreshToken }) })
+    .then((fresh) => {
+      writeTokens(fresh);
+      return fresh;
+    })
+    .catch(() => {
+      // Another tab may have rotated the token first; use its result instead of signing out.
+      const latest = readTokens();
+      return latest && latest.refreshToken !== refreshToken ? latest : null;
+    })
+    .finally(() => {
+      if (refreshInFlight?.promise === promise) refreshInFlight = null;
+    });
+  refreshInFlight = { refreshToken, promise };
+  return promise;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const setUser = useCallback((u: MeDto | null) => queryClient.setQueryData(ME_KEY, u), [queryClient]);
@@ -48,16 +72,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return await apiFetch<T>(path, { ...init, token: tokens.accessToken });
     } catch (err) {
       if (!(err instanceof ApiError) || err.statusCode !== 401) throw err;
-      const refreshed = await apiFetch<AuthTokens>('/auth/refresh', {
-        method: 'POST',
-        body: JSON.stringify({ refreshToken: tokens.refreshToken }),
-      }).catch(() => null);
+      const latest = readTokens();
+      if (latest && latest.accessToken !== tokens.accessToken) {
+        // Refreshed by a parallel request (or another tab) after this one started.
+        return apiFetch<T>(path, { ...init, token: latest.accessToken });
+      }
+      const refreshed = await refreshTokens(tokens.refreshToken);
       if (!refreshed) {
         writeTokens(null);
         setUser(null);
         throw err;
       }
-      writeTokens(refreshed);
       return apiFetch<T>(path, { ...init, token: refreshed.accessToken });
     }
   }, [setUser]);

@@ -1,11 +1,12 @@
 import { z } from 'zod';
+import './zod-locale.js';
 import { ApplicationStatus, CategoryFieldType, CourseLevel, PermissionEffect, UserStatus } from './enums.js';
 import { isPermissionKey } from './permissions.js';
 
 export const registerSchema = z.object({
   email: z.email({ error: 'Email không hợp lệ' }).trim().toLowerCase(),
-  password: z.string({ error: 'Vui lòng nhập mật khẩu' }).min(8, 'Mật khẩu tối thiểu 8 ký tự').max(72),
-  fullName: z.string({ error: 'Vui lòng nhập họ tên' }).trim().min(2, 'Vui lòng nhập họ tên').max(100),
+  password: z.string({ error: 'Vui lòng nhập mật khẩu' }).min(8, 'Mật khẩu tối thiểu 8 ký tự').max(72, 'Mật khẩu tối đa 72 ký tự'),
+  fullName: z.string({ error: 'Vui lòng nhập họ tên' }).trim().min(2, 'Vui lòng nhập họ tên').max(100, 'Họ tên tối đa 100 ký tự'),
 });
 export type RegisterInput = z.infer<typeof registerSchema>;
 
@@ -150,7 +151,7 @@ export const submitApplicationSchema = z.object({
   headline: z.string().trim().min(5, 'Giới thiệu ngắn tối thiểu 5 ký tự').max(120),
   bio: z.string().trim().min(30, 'Giới thiệu bản thân tối thiểu 30 ký tự').max(2000),
   experience: z.string().trim().min(30, 'Kinh nghiệm giảng dạy tối thiểu 30 ký tự').max(3000),
-  links: z.array(z.url({ error: 'Link không hợp lệ' }).max(300)).max(5).default([]),
+  links: z.array(z.url({ error: 'Link không hợp lệ' }).max(300, 'Link tối đa 300 ký tự')).max(5).default([]),
 });
 export type SubmitApplicationInput = z.infer<typeof submitApplicationSchema>;
 
