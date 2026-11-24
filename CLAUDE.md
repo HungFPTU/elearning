@@ -168,6 +168,7 @@ Tooling: **pnpm workspaces** (root scripts use `pnpm -r`; no Turborepo, its Wind
   rules (payments, enrollment, pricing); e2e in `apps/api/test/` (`pnpm --filter @elearning/api test:e2e`,
   needs Postgres). Web: test non-trivial logic/hooks.
 - Run `pnpm typecheck && pnpm lint && pnpm test` before saying work is done.
+- Manual and planned test cases live in `docs/test-cases.md`; every bug found gets a case there.
 
 ## 7. Git workflow
 - Branches: `feat/<short-name>`, `fix/<short-name>`, `chore/<short-name>` off `main`.
@@ -179,5 +180,19 @@ Tooling: **pnpm workspaces** (root scripts use `pnpm -r`; no Turborepo, its Wind
 Every page and its route is listed in `docs/screens.md`. Read it before adding a page, and update it
 in the same change that adds, renames or removes one.
 
-## 9. Workflow for a new feature
-See `.claude/skills/add-feature/SKILL.md`.
+## 9. Workflow and project skills
+Skills live in `.claude/skills/`. Use them; they hold the details this file only names.
+
+| Skill | Use when |
+|---|---|
+| `add-feature` | starting any feature or domain module |
+| `feature-proposal` | Bond asks for a feature or you suggest one: recommendation + why + concrete solution |
+| `bug-triage` | a bug is reported or found: explain it to Bond (bị sao, vì sao nguy hiểm, giải pháp), fix with a regression test |
+| `qa-test-cases` | testing, before saying done or asking to merge; maintains `docs/test-cases.md` |
+| `ui-design` | any page or component in `apps/web` |
+| `backend-review` | any change to `apps/api`, `packages/shared` or the Prisma schema |
+| `strict-pm` | reviewing a plan, milestone or PR against the business goals |
+
+Business model and roadmap (marketplace with instructor revenue share, then white-label multi-tenant
+subscriptions): Claude Doc "E-Learning: mô hình kinh doanh và đề xuất". New tables must not assume a single
+site, because `tenantId` is coming (see `backend-review`).
